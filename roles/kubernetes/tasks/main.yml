@@ -1,0 +1,57 @@
+---
+# Install Kubernetes
+- name: Prepare apt keyring directory
+  ansible.builtin.file:
+    path: "{{ kubernetes_apt_keyring_file | dirname }}"
+    state: directory
+    mode: '0755'
+
+- name: Get kubernetes repo gpg key
+  ansible.builtin.get_url:
+    url: "https://pkgs.k8s.io/core:/{{ kubernetes_apt_release_channel }}:/v{{ kubernetes_version }}/deb/Release.key"
+    dest: "{{ kubernetes_apt_keyring_file }}"
+    mode: '0644'
+    force: true
+
+- name: Add Kubernetes repository
+  ansible.builtin.apt_repository:
+    repo: "{{ kubernetes_apt_repository }}"
+    filename: pkgs_k8s_io
+    state: present
+    update_cache: true
+
+- name: Install kubernetes packages
+  ansible.builtin.apt:
+    pkg:
+      - kubeadm
+      - kubelet
+      - kubectl
+    state: present
+
+- name: Prevent kubernetes from being upgraded
+  ansible.builtin.dpkg_selections:
+    name: "{{ item }}"
+    selection: hold
+  loop:
+    - kubeadm
+    - kubelet
+    - kubectl
+
+# Kubernetes setup
+- name: Enable kubelet service
+  ansible.builtin.systemd_service:
+    name: kubelet
+    state: started
+    enabled: true
+
+- name: Install kubernetes python package
+  ansible.builtin.pip:
+    name: kubernetes
+
+- name: Run kubeadm init
+  ansible.builtin.include_tasks: master.yml
+  when: "'master' in group_names"
+
+- name: Run kubeadm join
+  ansible.builtin.include_tasks: worker.yml
+  when: "'worker' in group_names"

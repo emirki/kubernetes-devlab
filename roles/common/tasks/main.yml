@@ -1,0 +1,9 @@
+---
+- name: Do OS related tasks
+  ansible.builtin.include_tasks: os.yml
+
+- name: Install required packages
+  ansible.builtin.include_tasks: pkg.yml
+
+- name: Install container runtime
+  ansible.builtin.include_tasks: cri.yml

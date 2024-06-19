@@ -1,0 +1,57 @@
+---
+# install container runtime
+- name: Download containerd
+  ansible.builtin.get_url:
+    url: https://github.com/containerd/containerd/releases/download/v{{ containerd_version }}/containerd-{{ containerd_version }}-linux-amd64.tar.gz
+    checksum: sha256:https://github.com/containerd/containerd/releases/download/v{{ containerd_version }}/containerd-{{ containerd_version }}-linux-amd64.tar.gz.sha256sum
+    dest: /tmp/containerd.tar.gz
+    mode: 755
+
+- name: Unarchive containerd
+  ansible.builtin.unarchive:
+    src: /tmp/containerd.tar.gz
+    dest: /usr/local
+    remote_src: true
+
+- name: Download runc
+  ansible.builtin.get_url:
+    url: https://github.com/opencontainers/runc/releases/download/v1.1.12/runc.amd64
+    dest: /usr/local/sbin/runc
+    mode: 755
+
+- name: Download containerd service
+  ansible.builtin.get_url:
+    url: https://raw.githubusercontent.com/containerd/containerd/main/containerd.service
+    dest: /lib/systemd/system/containerd.service
+    mode: 755
+
+- name: Reload systemd and enable containerd service
+  ansible.builtin.systemd_service:
+    name: containerd
+    daemon_reload: true
+    state: started
+    enabled: true
+
+- name: Ensure containerd directory exists
+  ansible.builtin.file:
+    path: /etc/containerd
+    state: directory
+    mode: '0755'
+
+- name: Write default containerd configuration to system
+  ansible.builtin.shell:
+    cmd: "containerd config default > config.toml"
+    chdir: /etc/containerd
+    creates: config.toml
+
+- name: Change containerd cgroup driver to systemd
+  ansible.builtin.lineinfile:
+    path: /etc/containerd/config.toml
+    regexp: '^(\s*)(SystemdCgroup =).*'
+    line: '\g<1>\g<2> true'
+    backrefs: true
+
+- name: Restart containerd service
+  ansible.builtin.systemd_service:
+    name: containerd
+    state: restarted

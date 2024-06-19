@@ -1,0 +1,62 @@
+---
+- name: Check if Kubernetes has already been initialized.
+  ansible.builtin.stat:
+    path: /etc/kubernetes/admin.conf
+  register: kubernetes_init_stat
+
+- name: Create the directory for the kubernetes_config_file
+  ansible.builtin.file:
+    path: "{{ kubernetes_kubeadm_kubelet_config_file_path | dirname }}"
+    state: directory
+
+- name: Put kubelet config
+  ansible.builtin.template:
+    src: "templates/kubeadm-config.j2"
+    dest: "{{ kubernetes_kubeadm_kubelet_config_file_path }}"
+
+- name: Initialize Kubernetes control plane with kubeadm init
+  ansible.builtin.command: >
+    kubeadm init
+    --config {{ kubernetes_kubeadm_kubelet_config_file_path }}
+    {{ kubernetes_kubeadm_init_extra_opts }}
+  register: kubeadmin_init
+  when: (not kubernetes_init_stat.stat.exists)
+  changed_when: false
+
+- name: Print the init output to screen
+  ansible.builtin.debug:
+    var: kubeadmin_init.stdout
+    verbosity: 1
+  when: not kubernetes_init_stat.stat.exists
+
+- name: Ensure .kube directory exists
+  ansible.builtin.file:
+    path: ~/.kube
+    state: directory
+    mode: '0755'
+
+- name: Copy kubectl config
+  ansible.builtin.copy:
+    src: /etc/kubernetes/admin.conf
+    dest: ~/.kube/config
+    mode: '0644'
+    remote_src: true
+
+- name: Get kubectl config
+  ansible.builtin.fetch:
+    src: /etc/kubernetes/admin.conf
+    dest: ~/.kube/config
+    mode: '0644'
+    flat: true
+
+- name: "Install CNI Plugin: {{ cni_plugin }}"
+  block:
+    - name: Download calico manifest
+      ansible.builtin.get_url:
+        url: "{{ calico_manifest_url }}"
+        dest: /tmp/calico.yaml
+
+    - name: Apply calico cni manifest to the cluster.
+      kubernetes.core.k8s:
+        state: present
+        src: /tmp/calico.yaml

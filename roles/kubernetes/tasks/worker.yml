@@ -1,0 +1,27 @@
+---
+- name: Check if node is already part of the cluster
+  kubernetes.core.k8s_info:
+    kind: Node
+    name: "{{ inventory_hostname }}"
+  register: node_in_cluster
+  ignore_errors: true
+  changed_when: false
+  delegate_to: "{{ groups['master'][0] }}"
+
+- name: Join node to Kubernetes cluster if not already joined
+  when: node_in_cluster.resources | length == 0
+  block:
+    - name: Generate join command
+      ansible.builtin.command: kubeadm token create --print-join-command
+      register: join_command
+      changed_when: false
+      delegate_to: "{{ groups['master'][0] }}"
+
+    - name: Print kubeadm join command
+      ansible.builtin.debug:
+        var: join_command.stdout
+
+    - name: Join node to cluster
+      ansible.builtin.command: "{{ join_command.stdout }}"
+      register: join_result
+      changed_when: false
