@@ -32,5 +32,10 @@
     state: absent
 
 - name: "Disable swap"
-  ansible.builtin.shell: swapoff -a
   when: ansible_swaptotal_mb > 0
+  block:
+  - ansible.builtin.shell: swapoff -a
+  - ansible.builtin.lineinfile:
+      path: /etc/fstab
+      regexp: '^.*swap.*$'
+      line: '#\g<0>'

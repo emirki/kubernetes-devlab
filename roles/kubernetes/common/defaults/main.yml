@@ -1,0 +1,13 @@
+---
+
+# kubernetes
+kubernetes_version: "1.30"
+kubernetes_apt_release_channel: "stable"
+kubernetes_apt_keyring_file: "/etc/apt/keyrings/kubernetes-apt-keyring.asc"
+kubernetes_apt_repository: "deb [signed-by={{ kubernetes_apt_keyring_file }}] https://pkgs.k8s.io/core:/{{ kubernetes_apt_release_channel }}:/v{{ kubernetes_version }}/deb/ /"
+
+cni_plugin: "calico"
+
+# calico
+calico_version: "3.28.0"
+calico_manifest_url: "https://raw.githubusercontent.com/projectcalico/calico/v{{ calico_version }}/manifests/calico.yaml"

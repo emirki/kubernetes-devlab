@@ -30,25 +30,22 @@
   when: not kubernetes_init_stat.stat.exists
 
 - name: Ensure .kube directory exists
+  become: false
   ansible.builtin.file:
-    path: ~/.kube
+    path: ~{{ ansible_user }}/.kube
     state: directory
     mode: '0755'
 
 - name: Copy kubectl config
   ansible.builtin.copy:
     src: /etc/kubernetes/admin.conf
-    dest: ~/.kube/config
-    mode: '0644'
+    dest: ~{{ ansible_user }}/.kube/config
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+    # mode: 'u+rw,g-rw,o-rw'
     remote_src: true
 
-- name: Get kubectl config
-  ansible.builtin.fetch:
-    src: /etc/kubernetes/admin.conf
-    dest: ~/.kube/config
-    mode: '0644'
-    flat: true
-
+# TODO: move to its own role
 - name: "Install CNI Plugin: {{ cni_plugin }}"
   block:
     - name: Download calico manifest
@@ -57,6 +54,7 @@
         dest: /tmp/calico.yaml
 
     - name: Apply calico cni manifest to the cluster.
+      become: false
       kubernetes.core.k8s:
         state: present
         src: /tmp/calico.yaml

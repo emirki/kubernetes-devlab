@@ -3,7 +3,35 @@
   hosts: cluster
   gather_facts: true
   become: true
-
+  tags: prereq
   roles:
-    - common
-    - kubernetes
+    - role: common
+
+- name: "Setup Control Plane Nodes"
+  hosts: master
+  gather_facts: true
+  become: true
+  tags: install_kubernetes
+  roles:
+    - kubernetes/common
+    - kubernetes/master
+
+- name: "Setup Worker Nodes"
+  hosts: worker
+  gather_facts: true
+  become: true
+  tags: install_kubernetes
+  roles:
+    - kubernetes/common
+    - kubernetes/worker
+
+- name: "Install extras"
+  hosts: cluster
+  tags: install_extras
+  roles:
+    - role: extras/helm
+      tags: install_helm
+      become: true
+    - role: extras/ingress
+      tags: install_ingress
+      hosts: master

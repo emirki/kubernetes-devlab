@@ -1,0 +1,37 @@
+---
+- name: Download Helm package
+  ansible.builtin.get_url:
+    url: "https://get.helm.sh/helm-v{{ helm_version }}-linux-amd64.tar.gz"
+    dest: "/tmp/helm-v{{ helm_version }}.tar.gz"
+
+- name: Ensure that directory exists
+  ansible.builtin.file:
+    path: "/tmp/helm-v{{ helm_version }}"
+    state: directory
+
+- name: Unpack Helm package
+  ansible.builtin.unarchive:
+    src: "/tmp/helm-v{{ helm_version }}.tar.gz"
+    dest: "/tmp/helm-v{{ helm_version }}"
+    remote_src: true
+
+- name: Copy Helm binary to Path
+  ansible.builtin.copy:
+    src: "/tmp/helm-v{{ helm_version }}/linux-amd64/helm"
+    dest: /usr/local/bin/helm
+    remote_src: true
+    mode: preserve
+
+- name: Cleanup
+  ansible.builtin.file:
+    path: "{{ item }}"
+    state: absent
+  loop:
+    - "/tmp/helm-v{{ helm_version }}.tar.gz"
+    - "/tmp/helm-v{{ helm_version }}"
+
+- name: Add helm autocomplete to user bashrc
+  ansible.builtin.lineinfile:
+    path: "~{{ ansible_user }}/.bashrc"
+    regexp: '\.\s+<\(helm completion bash\)'
+    line: ". <(helm completion bash)  # Added by devlab-provision"

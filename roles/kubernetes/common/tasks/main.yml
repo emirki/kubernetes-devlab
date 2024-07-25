@@ -48,10 +48,14 @@
   ansible.builtin.pip:
     name: kubernetes
 
-- name: Run kubeadm init
-  ansible.builtin.include_tasks: master.yml
-  when: "'master' in group_names"
+- name: Configure kubectl autocomplete
+  ansible.builtin.lineinfile:
+    path: ~{{ ansible_user }}/.bashrc
+    regexp: '\.\s+<\(kubectl completion bash\)'
+    line: ". <(kubectl completion bash)  # Added by devlab-provision"
 
-- name: Run kubeadm join
-  ansible.builtin.include_tasks: worker.yml
-  when: "'worker' in group_names"
+- name: Add kubectl alias
+  ansible.builtin.lineinfile:
+    path: ~{{ ansible_user }}/.bashrc
+    regexp: 'alias\s+"k"="kubectl"'
+    line: 'alias "k"="kubectl" # Added by devlab-provision'

@@ -7,6 +7,7 @@
   ignore_errors: true
   changed_when: false
   delegate_to: "{{ groups['master'][0] }}"
+  become: false
 
 - name: Join node to Kubernetes cluster if not already joined
   when: node_in_cluster.resources | length == 0
@@ -16,6 +17,7 @@
       register: join_command
       changed_when: false
       delegate_to: "{{ groups['master'][0] }}"
+      become: false
 
     - name: Print kubeadm join command
       ansible.builtin.debug:
