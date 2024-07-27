@@ -21,6 +21,7 @@
     dest: /usr/local/bin/helm
     remote_src: true
     mode: preserve
+  become: true
 
 - name: Cleanup
   ansible.builtin.file:
@@ -29,6 +30,7 @@
   loop:
     - "/tmp/helm-v{{ helm_version }}.tar.gz"
     - "/tmp/helm-v{{ helm_version }}"
+  become: true
 
 - name: Add helm autocomplete to user bashrc
   ansible.builtin.lineinfile:

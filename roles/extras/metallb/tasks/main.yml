@@ -1,0 +1,58 @@
+---
+- name: Modify kube-proxy settings for MetalLB
+  block:
+    - name: Get kube-proxy config map
+      ansible.builtin.command: |
+        kubectl get configmap kube-proxy -n kube-system -o yaml
+      register: kube_proxy_cmd
+      failed_when: false
+
+    - name: Verify if kube-proxy config needs updating
+      ansible.builtin.command: >-
+        kubectl get configmap kube-proxy -n kube-system -o yaml |
+        sed -e "s/strictARP: false/strictARP: true/" |
+        kubectl diff -f - -n kube-system
+      register: kube_proxy_diff_cmd
+      when: kube_proxy_cmd.rc == 0
+      failed_when: false
+
+    - name: Set update_kube_proxy secret to true
+      ansible.builtin.set_fact:
+        update_kube_proxy: true
+      when:
+        kube_proxy_cmd.rc == 0 and kube_proxy_diff_cmd.rc > 0
+
+    - name: Update kube-proxy config map
+      ansible.builtin.shell: >-
+        kubectl get configmap kube-proxy -n kube-system -o yaml |
+        sed -e "s/strictARP: false/strictARP: true/" |
+        kubectl apply -f - -n kube-system
+      when:
+        update_kube_proxy | default(false)
+
+- name: Add MetalLB Helm repo
+  kubernetes.core.helm_repository:
+    repo_name: metallb
+    repo_url: https://metallb.github.io/metallb
+    state: present
+
+- name: Install MetalLB using Helm
+  kubernetes.core.helm:
+    name: metallb
+    chart_ref: metallb/metallb
+    release_namespace: "{{ metallb_namespace }}"
+    create_namespace: true
+
+- name: Apply CR files
+  block:
+    # - name: MetalLB | Layout layer2 template
+    #   ansible.builtin.template:
+    #     src: l2.yml.j2
+    #     dest: "~{{ansible_user}}/.congig/kubernetes/layer2.yaml"
+    #     mode: "0644"
+    #   become: true
+
+    - name: MetalLB | Create layer2 configuration
+      kubernetes.core.k8s:
+        template: "l2.yml.j2"
+        state: "present"

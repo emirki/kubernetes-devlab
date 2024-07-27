@@ -26,12 +26,13 @@
     - kubernetes/worker
 
 - name: "Install extras"
-  hosts: cluster
+  hosts: master
   tags: install_extras
+  become: false
   roles:
     - role: extras/helm
       tags: install_helm
-      become: true
-    - role: extras/ingress
+    - role: extras/metallb
+      tags: install_metallb
+    - role: extras/ingress-nginx
       tags: install_ingress
-      hosts: master
