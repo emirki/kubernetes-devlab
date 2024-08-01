@@ -6,7 +6,7 @@ metadata:
   namespace: {{ metallb_namespace }}
 spec:
   addresses:
-  - 192.168.2.250-192.168.2.253
+  - {{ hostvars[groups['worker'][0]].ansible_host }}/32
 
 ---
 apiVersion: metallb.io/v1beta1

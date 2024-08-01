@@ -27,6 +27,7 @@
         kubectl get configmap kube-proxy -n kube-system -o yaml |
         sed -e "s/strictARP: false/strictARP: true/" |
         kubectl apply -f - -n kube-system
+      changed_when: true
       when:
         update_kube_proxy | default(false)
 
@@ -43,16 +44,15 @@
     release_namespace: "{{ metallb_namespace }}"
     create_namespace: true
 
-- name: Apply CR files
-  block:
-    # - name: MetalLB | Layout layer2 template
-    #   ansible.builtin.template:
-    #     src: l2.yml.j2
-    #     dest: "~{{ansible_user}}/.congig/kubernetes/layer2.yaml"
-    #     mode: "0644"
-    #   become: true
+- name: Wait for MetalLB controller to be running
+  ansible.builtin.command: >-
+    kubectl rollout status -n {{ metallb_namespace }} deployment \
+      -l app.kubernetes.io/name=metallb,app.kubernetes.io/component=controller \
+      --timeout=2m
+  when:
+    - inventory_hostname == groups['master'][0]
 
-    - name: MetalLB | Create layer2 configuration
-      kubernetes.core.k8s:
-        template: "l2.yml.j2"
-        state: "present"
+- name: MetalLB | Create layer2 configuration
+  kubernetes.core.k8s:
+    template: "l2.yml.j2"
+    state: "present"

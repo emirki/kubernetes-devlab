@@ -1,0 +1,25 @@
+---
+- name: Create a k8s namespace
+  kubernetes.core.k8s:
+    name: "{{ local_path_provisioner_namespace }}"
+    api_version: v1
+    kind: Namespace
+    state: present
+  when:
+    - inventory_hostname == groups['master'][0]
+
+- name: Create claim root dir
+  become: true
+  ansible.builtin.file:
+    path: "{{ local_path_provisioner_path }}"
+    state: directory
+    mode: "0755"
+
+- name: Apply manifests
+  kubernetes.core.k8s:
+    template: "{{ item }}"
+    state: present
+  with_fileglob:
+    - templates/*
+  when:
+    - inventory_hostname == groups['master'][0]

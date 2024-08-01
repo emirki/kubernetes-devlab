@@ -5,7 +5,10 @@
   become: true
   tags: prereq
   roles:
-    - role: common
+    - common
+    # TODO: move kubernetes common to all cluster nodes
+    # - kubernetes/common
+
 
 - name: "Setup Control Plane Nodes"
   hosts: master
@@ -13,6 +16,7 @@
   become: true
   tags: install_kubernetes
   roles:
+    # TODO: remove
     - kubernetes/common
     - kubernetes/master
 
@@ -22,8 +26,15 @@
   become: true
   tags: install_kubernetes
   roles:
+    # TODO: remove
     - kubernetes/common
     - kubernetes/worker
+
+- name: "Install extras"
+  hosts: cluster
+  roles:
+    - role: extras/local-path-provisioner
+      tags: install_local_path
 
 - name: "Install extras"
   hosts: master
@@ -36,3 +47,4 @@
       tags: install_metallb
     - role: extras/ingress-nginx
       tags: install_ingress
+

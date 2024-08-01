@@ -1,4 +1,17 @@
 ---
+
+- name: Copy nginx-ingress helm chart values to remote
+  block:
+    - name: Create values directory
+      ansible.builtin.file:
+        path: /tmp/nginx-ingress
+        state: directory
+
+    - name: Copy values file
+      ansible.builtin.copy:
+        src: values.yml
+        dest: /tmp/nginx-ingress/values.yml
+
 - name: Install NGINX Ingress Controller
   kubernetes.core.helm:
     name: nginx-ingress
@@ -6,3 +19,6 @@
     chart_repo_url: "https://kubernetes.github.io/ingress-nginx"
     release_namespace: nginx-ingress
     create_namespace: true
+    upgrade:
+    values_files:
+      - /tmp/nginx-ingress/values.yml
